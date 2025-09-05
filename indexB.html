@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบจัดการคิว</title>
+    <style>
+        /* นำเข้าฟอนต์ Kanit และ Sarabun จาก Google Fonts เพื่อความสวยงาม */
+        @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;700&family=Sarabun:wght@400;700&display=swap');
+
+        /* กำหนดตัวแปรสีและฟอนต์สำหรับใช้งานทั่วทั้งหน้า */
+        :root {
+            --primary-color: #37474F; /* Dark Slate Gray */
+            --secondary-color: #546E7A; /* Blue-Gray */
+            --accent-color: #FFAB40; /* Amber */
+            --text-color: #333;
+            --bg-color: #f6f8fa; /* พื้นหลังสีเทาอ่อน */
+            --card-bg-color: #ffffff; /* พื้นหลังการ์ดสีขาว */
+            --button-bg-color: #4DB6AC; /* Light Sea Green */
+            --serving-color: #66BB6A; /* Green */
+            --waiting-color: #FFCA28; /* Yellow */
+            --finished-color: #BDBDBD; /* Light Gray */
+            --error-color: #E57373; /* Red */
+        }
+
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        #app {
+            background-color: var(--card-bg-color);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+            border-radius: 16px;
+            margin: 20px;
+            padding: 30px;
+            width: 100%;
+            max-width: 900px;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+        }
+
+        /* --- แถบนำทาง --- */
+        #navbar {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            padding-bottom: 25px;
+            border-bottom: 2px solid #e0e0e0;
+            margin-bottom: 25px;
+        }
+
+        #navbar button {
+            font-family: 'Kanit', sans-serif;
+            font-weight: 500;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 25px;
+            background-color: #e8eaf6;
+            color: var(--primary-color);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+
+        #navbar button.active {
+            background-color: var(--primary-color);
+            color: #fff;
+            box-shadow: 0 4px 10px rgba(55, 71, 79, 0.3);
+        }
+
+        #navbar button:hover {
+            transform: translateY(-3px);
+            background-color: var(--secondary-color);
+            color: #fff;
+        }
+
+        /* --- โครงสร้างทั่วไปและองค์ประกอบ --- */
+        .view {
+            display: none;
+        }
+
+        h2, h3 {
+            font-family: 'Kanit', sans-serif;
+            color: var(--primary-color);
+            margin-top: 0;
+            font-weight: 700;
+        }
+
+        .card {
+            background-color: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        input[type="text"], input[type="password"], textarea, select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-sizing: border-box;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 5px rgba(55, 71, 79, 0.5);
+        }
+
+        button {
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            background-color: var(--button-bg-color);
+            color: #fff;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        }
+
+        button:hover {
+            background-color: #3f928c;
+            transform: scale(1.02);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .message-box {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            font-family: 'Kanit', sans-serif;
+            font-weight: 700;
+            display: none;
+            transition: all 0.3s ease;
+        }
+        
+        #booking-result, #status-result {
+            background-color: #e6f7ff;
+            color: #1e3a8a;
+        }
+
+        #staff-message {
+            background-color: var(--error-color);
+            color: #fff;
+        }
+
+        /* --- มุมมองเจ้าหน้าที่ --- */
+        #staff-view h3 {
+            color: var(--accent-color);
+        }
+
+        #staff-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            flex-wrap: wrap; /* ให้ปุ่มขึ้นบรรทัดใหม่ได้เมื่อหน้าจอเล็ก */
+        }
+
+        #call-next-btn { background-color: var(--primary-color); }
+        #finish-queue-btn { background-color: var(--finished-color); }
+        #reset-queue-btn { background-color: var(--error-color); }
+
+        #call-next-btn:hover { background-color: #263238; }
+        #finish-queue-btn:hover { background-color: #9E9E9E; }
+        #reset-queue-btn:hover { background-color: #b75252; }
+
+        #waiting-list {
+            list-style: none;
+            padding: 0;
+        }
+        #waiting-list li {
+            background-color: #fafafa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            line-height: 1.4;
+        }
+        
+        /* --- มุมมองจอแสดงผล --- */
+        #display-view {
+            text-align: center;
+        }
+        #display-view h1 {
+            font-family: 'Kanit', sans-serif;
+            color: var(--primary-color);
+            font-size: 3rem;
+            margin-bottom: 25px;
+        }
+
+        #display-calling {
+            background-color: var(--serving-color);
+            color: #fff;
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            font-family: 'Kanit', sans-serif;
+            transition: background-color 0.5s ease;
+        }
+
+        #display-calling p {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 300;
+            opacity: 0.8;
+        }
+
+        #display-queue-number, #display-counter-number {
+            font-size: 6rem;
+            font-weight: 700;
+            margin: 15px 0;
+        }
+        
+        #display-calling.flash {
+            animation: flash 1s infinite;
+        }
+        
+        @keyframes flash {
+            0% { background-color: var(--serving-color); }
+            50% { background-color: #559B42; }
+            100% { background-color: var(--serving-color); }
+        }
+
+        @media (max-width: 768px) {
+            #app {
+                padding: 20px;
+            }
+            #navbar {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            #navbar button {
+                padding: 10px 20px;
+                font-size: 0.9rem;
+            }
+            #display-queue-number, #display-counter-number {
+                font-size: 4rem;
+            }
+            #staff-controls {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app">
+        <nav id="navbar">
+            <button id="nav-user-btn" onclick="switchView('user-view')">สำหรับผู้ใช้</button>
+            <button id="nav-staff-btn" onclick="switchView('staff-view')">สำหรับเจ้าหน้าที่</button>
+            <button id="nav-display-btn" onclick="switchView('display-view')">จอแสดงผล</button>
+        </nav>
+
+        <!-- --- View 1: User View --- -->
+        <div id="user-view" class="view">
+            <h3>จองคิว</h3>
+            <div class="card">
+                <form id="book-queue-form">
+                    <div class="form-group">
+                        <label for="user-name-input">ชื่อ-นามสกุล:</label>
+                        <input type="text" id="user-name-input" placeholder="กรุณากรอกชื่อ-นามสกุล" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="department-select">แผนก:</label>
+                        <select id="department-select">
+                            <option value="PM">PM</option>
+                            <option value="EC">EC</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="vehicle-type-select">ประเภทรถ:</label>
+                        <select id="vehicle-type-select">
+                            <option value="4ล้อ">4ล้อ</option>
+                            <option value="6ล้อ">6ล้อ</option>
+                            <option value="10ล้อ">10ล้อ</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="notes-input">หมายเหตุ:</label>
+                        <textarea id="notes-input" placeholder="หมายเหตุ (ถ้ามี)"></textarea>
+                    </div>
+                    <button type="submit" id="book-queue-btn">รับบัตรคิว</button>
+                </form>
+                <div id="booking-result" class="message-box" style="display: none;"></div>
+            </div>
+
+            <h3>ตรวจสอบสถานะคิวของคุณ</h3>
+            <div class="card">
+                <form id="check-status-form">
+                    <input type="text" id="queue-number-input" placeholder="กรุณากรอกหมายเลขคิว (เช่น A001)">
+                    <button type="button" id="check-queue-btn">ตรวจสอบ</button>
+                </form>
+                <div id="status-result" class="message-box" style="display: none;"></div>
+            </div>
+        </div>
+
+        <!-- --- View 2: Staff View --- -->
+        <div id="staff-view" class="view">
+            <h3>แผงควบคุมสำหรับเจ้าหน้าที่</h3>
+            <div class="card" id="staff-login-card">
+                <p>กำลังให้บริการคิวหมายเลข: <span id="serving-now-display">-</span></p>
+                <div class="form-group" style="display: flex; flex-direction: row; gap: 10px;">
+                    <input type="password" id="staff-password-input" placeholder="รหัสผ่านสำหรับเจ้าหน้าที่" style="flex-grow: 1;">
+                    <button id="staff-login-btn">เข้าสู่ระบบ</button>
+                </div>
+            </div>
+            
+            <div id="staff-content" style="display: none;">
+                <div id="staff-controls">
+                    <button id="call-next-btn">เรียกคิวถัดไป</button>
+                    <button id="finish-queue-btn">เสร็จสิ้นบริการ</button>
+                    <button id="reset-queue-btn">รีเซ็ตคิว</button>
+                </div>
+                <div id="staff-message" class="message-box" style="display: none;"></div>
+                <div class="card">
+                    <h3>รายการคิวที่รอ</h3>
+                    <ul id="waiting-list">
+                        <!-- Waiting queues will be rendered here -->
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- --- View 3: Display View --- -->
+        <div id="display-view" class="view">
+            <h1>คิวที่กำลังเรียก</h1>
+            <div id="display-calling">
+                <p>หมายเลขคิว</p>
+                <h2 id="display-queue-number">-</h2>
+                <p>ที่เคาน์เตอร์</p>
+                <h2 id="display-counter-number">1</h2>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Core Data & State Management ---
+        const LOCAL_STORAGE_KEY = 'queueAppState';
+        const initialState = {
+            queues: [], // Array of queue objects { id, name, department, type, vehicleType, notes, status, timestamp }
+            currentQueueNumber: 0,
+            servingCounter: 1,
+            currentlyServing: null
+        };
+
+        let appState = loadState();
+        let staffIsLoggedIn = false;
+
+        function loadState() {
+            try {
+                const serializedState = localStorage.getItem(LOCAL_STORAGE_KEY);
+                if (serializedState === null) {
+                    saveState(initialState);
+                    return initialState;
+                }
+                return JSON.parse(serializedState);
+            } catch (error) {
+                console.error("Error loading state from localStorage", error);
+                return initialState;
+            }
+        }
+
+        function saveState(state) {
+            try {
+                const serializedState = JSON.stringify(state);
+                localStorage.setItem(LOCAL_STORAGE_KEY, serializedState);
+            } catch (error) {
+                console.error("Error saving state to localStorage", error);
+            }
+        }
+
+        // --- DOM Elements ---
+        const allViews = document.querySelectorAll('.view');
+        const navButtons = document.querySelectorAll('#navbar button');
+
+        const bookQueueForm = document.getElementById('book-queue-form');
+        const userNameInput = document.getElementById('user-name-input');
+        const departmentSelect = document.getElementById('department-select');
+        const vehicleTypeSelect = document.getElementById('vehicle-type-select');
+        const notesInput = document.getElementById('notes-input');
+        const bookingResultDiv = document.getElementById('booking-result');
+
+        const checkStatusForm = document.getElementById('check-status-form');
+        const queueNumberInput = document.getElementById('queue-number-input');
+        const statusResultDiv = document.getElementById('status-result');
+
+        const servingNowDisplay = document.getElementById('serving-now-display');
+        const staffPasswordInput = document.getElementById('staff-password-input');
+        const staffLoginBtn = document.getElementById('staff-login-btn');
+        const staffContentDiv = document.getElementById('staff-content');
+        const staffLoginCard = document.getElementById('staff-login-card');
+        const staffMessageDiv = document.getElementById('staff-message');
+        const waitingListUl = document.getElementById('waiting-list');
+        const callNextBtn = document.getElementById('call-next-btn');
+        const finishQueueBtn = document.getElementById('finish-queue-btn');
+        const resetQueueBtn = document.getElementById('reset-queue-btn');
+
+        const displayQueueNumberH2 = document.getElementById('display-queue-number');
+        const displayCounterNumberH2 = document.getElementById('display-counter-number');
+        const displayCallingDiv = document.getElementById('display-calling');
+
+        // --- Functions ---
+        function generateQueueNumber(number) {
+            const paddedNumber = String(number).padStart(3, '0');
+            return `A${paddedNumber}`;
+        }
+
+        function showMessage(message, targetDiv) {
+            targetDiv.innerText = message;
+            targetDiv.style.display = 'block';
+            setTimeout(() => {
+                targetDiv.style.display = 'none';
+            }, 3000); // Hide after 3 seconds
+        }
+
+        function switchView(viewId) {
+            allViews.forEach(view => {
+                view.style.display = 'none';
+            });
+            document.getElementById(viewId).style.display = 'block';
+
+            navButtons.forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.getElementById(`nav-${viewId.replace('-view', '-btn')}`).classList.add('active');
+
+            if (viewId === 'staff-view') {
+                if (staffIsLoggedIn) {
+                    staffContentDiv.style.display = 'block';
+                    staffPasswordInput.style.display = 'none';
+                    staffLoginBtn.style.display = 'none';
+                } else {
+                    staffContentDiv.style.display = 'none';
+                    staffPasswordInput.style.display = 'block';
+                    staffLoginBtn.style.display = 'block';
+                }
+            }
+        }
+
+        function renderUserView() {
+            const bookingResultQueueId = bookingResultDiv.dataset.queueId;
+            if (bookingResultQueueId) {
+                const currentQueue = appState.queues.find(q => q.id === bookingResultQueueId);
+                if (currentQueue) {
+                    bookingResultDiv.innerText = `คุณได้รับคิวหมายเลข: ${currentQueue.id}\nประเภทบริการ: ${currentQueue.type}\nประเภทรถ: ${currentQueue.vehicleType}`;
+                    bookingResultDiv.style.display = 'block';
+                }
+            }
+        }
+
+        function renderStaffView() {
+            // Update currently serving display
+            const servingQueue = appState.queues.find(q => q.id === appState.currentlyServing);
+            servingNowDisplay.innerText = servingQueue ? servingQueue.id : '-';
+
+            // Update waiting list
+            waitingListUl.innerHTML = '';
+            const waitingQueues = appState.queues
+                .filter(q => q.status === 'waiting')
+                .sort((a, b) => a.timestamp - b.timestamp);
+
+            waitingQueues.forEach(queue => {
+                const li = document.createElement('li');
+                li.innerHTML = `<strong>คิว ${queue.id}</strong>: คุณ${queue.name} (${queue.department} | ${queue.type} | ${queue.vehicleType})<br>หมายเหตุ: ${queue.notes || '-'}`;
+                waitingListUl.appendChild(li);
+            });
+        }
+
+        function renderDisplayView(isNewCall = false) {
+            const servingQueue = appState.queues.find(q => q.id === appState.currentlyServing);
+
+            if (servingQueue) {
+                displayQueueNumberH2.innerText = servingQueue.id;
+                displayCounterNumberH2.innerText = appState.servingCounter;
+                if (isNewCall) {
+                    displayCallingDiv.classList.add('flash');
+                    setTimeout(() => {
+                        displayCallingDiv.classList.remove('flash');
+                    }, 3000);
+                }
+            } else {
+                displayQueueNumberH2.innerText = '-';
+                displayCounterNumberH2.innerText = appState.servingCounter;
+            }
+        }
+
+        function renderAllViews(isNewCall = false) {
+            appState = loadState();
+            renderUserView();
+            renderStaffView();
+            renderDisplayView(isNewCall);
+        }
+
+        // --- Event Handlers ---
+        bookQueueForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            appState.currentQueueNumber++;
+            const newQueueId = generateQueueNumber(appState.currentQueueNumber);
+            const newQueue = {
+                id: newQueueId,
+                name: userNameInput.value,
+                department: departmentSelect.value,
+                type: departmentSelect.value, // ใช้ค่าจากแผนกมาเป็นประเภทบริการ
+                vehicleType: vehicleTypeSelect.value,
+                notes: notesInput.value,
+                status: 'waiting',
+                timestamp: Date.now()
+            };
+
+            appState.queues.push(newQueue);
+            saveState(appState);
+
+            bookingResultDiv.innerText = `คุณได้รับคิวหมายเลข: ${newQueueId}\nประเภทบริการ: ${newQueue.type}\nประเภทรถ: ${newQueue.vehicleType}`;
+            bookingResultDiv.style.display = 'block';
+            bookingResultDiv.dataset.queueId = newQueueId;
+            
+            userNameInput.value = '';
+            notesInput.value = '';
+            renderAllViews();
+        });
+
+        document.getElementById('check-queue-btn').addEventListener('click', () => {
+            const queueId = queueNumberInput.value.trim().toUpperCase();
+            if (!queueId) {
+                showMessage("กรุณากรอกหมายเลขคิว", statusResultDiv);
+                return;
+            }
+
+            const myQueue = appState.queues.find(q => q.id === queueId);
+            if (myQueue) {
+                const waitingIndex = appState.queues
+                    .filter(q => q.status === 'waiting')
+                    .sort((a, b) => a.timestamp - b.timestamp)
+                    .findIndex(q => q.id === queueId);
+                
+                let statusText = '';
+                if (myQueue.status === 'serving') {
+                    statusText = `คิวของคุณกำลังถูกเรียกที่เคาน์เตอร์ที่ ${appState.servingCounter}`;
+                } else if (myQueue.status === 'finished') {
+                    statusText = 'คิวของคุณให้บริการเสร็จสิ้นแล้ว';
+                } else {
+                    statusText = `คิวของคุณอยู่ลำดับที่ ${waitingIndex + 1}`;
+                }
+                
+                statusResultDiv.innerText = `คิวของคุณ: ${myQueue.id}\nสถานะ: ${myQueue.status}\n${statusText}`;
+            } else {
+                statusResultDiv.innerText = `ไม่พบคิวหมายเลข: ${queueId}`;
+            }
+            statusResultDiv.style.display = 'block';
+            queueNumberInput.value = '';
+        });
+
+        staffLoginBtn.addEventListener('click', () => {
+            const correctPassword = '1234';
+            if (staffPasswordInput.value === correctPassword) {
+                staffIsLoggedIn = true;
+                staffPasswordInput.value = '';
+                switchView('staff-view');
+            } else {
+                showMessage('รหัสผ่านไม่ถูกต้อง', staffMessageDiv);
+            }
+        });
+
+        callNextBtn.addEventListener('click', () => {
+            const nextQueue = appState.queues
+                .filter(q => q.status === 'waiting')
+                .sort((a, b) => a.timestamp - b.timestamp)[0];
+
+            if (nextQueue) {
+                // Change previous serving queue to finished
+                if (appState.currentlyServing) {
+                    const prevServing = appState.queues.find(q => q.id === appState.currentlyServing);
+                    if (prevServing) {
+                        prevServing.status = 'finished';
+                    }
+                }
+
+                // Call the next queue
+                nextQueue.status = 'serving';
+                appState.currentlyServing = nextQueue.id;
+                saveState(appState);
+                renderAllViews(true); // Pass true to trigger sound and animation
+            } else {
+                showMessage('ไม่มีคิวที่รออยู่', staffMessageDiv);
+            }
+        });
+
+        finishQueueBtn.addEventListener('click', () => {
+            if (appState.currentlyServing) {
+                const servingQueue = appState.queues.find(q => q.id === appState.currentlyServing);
+                if (servingQueue) {
+                    servingQueue.status = 'finished';
+                }
+                appState.currentlyServing = null;
+                saveState(appState);
+                renderAllViews();
+            } else {
+                 showMessage('ไม่มีคิวที่กำลังให้บริการ', staffMessageDiv);
+            }
+        });
+
+        resetQueueBtn.addEventListener('click', () => {
+            saveState(initialState);
+            renderAllViews();
+            showMessage('ระบบคิวถูกรีเซ็ตเรียบร้อยแล้ว', staffMessageDiv);
+        });
+        
+        // --- Real-time Synchronization ---
+        window.addEventListener('storage', (e) => {
+            if (e.key === LOCAL_STORAGE_KEY) {
+                renderAllViews();
+            }
+        });
+
+        // Initial setup
+        window.onload = () => {
+            switchView('user-view');
+            renderAllViews();
+        };
+    </script>
+</body>
+</html>
